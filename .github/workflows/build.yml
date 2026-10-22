@@ -1,0 +1,59 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: |
+          npm install
+          npm install @capacitor/core @capacitor/android @capacitor/cli
+          mkdir -p www
+          cp index.html www/index.html
+
+      - name: Initialize Capacitor if needed
+        run: |
+          if [ ! -f "capacitor.config.json" ]; then
+            npx cap init "نور المسلم" "com.nooralmuslim.app" --web-dir www
+          fi
+
+      - name: Add Android platform
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build Android APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Noor-Al-Muslim-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
